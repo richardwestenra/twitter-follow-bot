@@ -3,9 +3,11 @@
  * and unfollows random followers of yours
  */
 
+const Markov = require('markov');
 const Twit = require('twit');
 const config = require('./config');
 
+const markov = new Markov(1);
 const twit = new Twit(config);
 const screenNames = config.screenNames.split(',');
 const { searchTerms } = config;
@@ -15,6 +17,7 @@ setInterval(() => {
   if (Math.random() > 0.05) {
     getRandom([
       follow,
+      tweetHorse,
       getTweet.bind(this, 'popular', retweet),
       getTweet.bind(this, 'recent', fav),
     ])();
@@ -100,6 +103,32 @@ function unfollow() {
     .catch(console.error);
 }
 
+
+// Say something weird and horse_js-ish
+function tweetHorse() {
+  var randScreenName = getRandom(screenNames);
+  twit.get('statuses/user_timeline', { screen_name: randScreenName })
+    .then(({ data }) => data.map(d => d.text)
+      .join(' ')
+      .split(' ')
+      .filter((word) => !word.match('@') && !word.match('http') && !word.match('RT'))
+      .join(' ')
+    )
+    .then((tweets) => new Promise((resolve) => {
+      markov.seed(tweets, () => {
+        var tweet = markov.respond(tweets).reduce((a, b) => {
+          var tmp = `${a} ${b}`;
+          return (tmp.length > 140) ? a : tmp;
+        }, '').trim();
+        resolve(tweet);
+      });
+    }))
+    .then(tweet => {
+      twit.post('statuses/update', { status: tweet });
+      console.log(`Tweeted "${tweet}"`);
+    })
+    .catch(console.error);
+}
 
 function getRandom(arr) {
   return arr[ Math.floor(arr.length * Math.random()) ];

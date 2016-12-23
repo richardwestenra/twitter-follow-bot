@@ -15,6 +15,7 @@
   "author": "Richard Westenra",
   "license": "MIT",
   "dependencies": {
+    "markov": "0.0.7",
     "twit": "^2.2.5"
   },
   "engines": {
