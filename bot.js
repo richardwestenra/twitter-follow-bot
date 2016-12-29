@@ -5,12 +5,12 @@
 
 const Markov = require('markov');
 const Twit = require('twit');
-const config = require('./config');
+const config = process.env || require('./config');
 
 const markov = new Markov(1);
 const twit = new Twit(config);
-const screenNames = config.screenNames.split(',');
-const { searchTerms } = config;
+const screen_names = config.screen_names.split(',');
+const { search_terms } = config;
 const seconds = 65;
 
 setInterval(() => {
@@ -28,12 +28,8 @@ setInterval(() => {
 
 
 function getTweet(type, callback) {
-  // const elapsed = 86400000 * Math.ceil(Math.random() * 1000);
-  // const date = new Date(new Date() - elapsed).toISOString().split('T')[0];
-
   twit.get('search/tweets', {
-      // q: `${searchTerms} since:${date}`,
-      q: searchTerms,
+      q: search_terms,
       result_type: type,
       count: 50
     })
@@ -51,6 +47,7 @@ function getTweet(type, callback) {
     .catch(console.error);
 }
 
+
 // Retweet a very good tweet
 function retweet(tweet) {
   twit.post('statuses/retweet/:id', { id: tweet.id_str })
@@ -64,6 +61,7 @@ function retweet(tweet) {
     .catch(console.error);
   return tweet;
 }
+
 
 // Favourite a very good tweet
 function fav(tweet) {
@@ -82,7 +80,7 @@ function fav(tweet) {
 
 // Choose a random follower of someone on the list, and follow that user:
 function follow() {
-  var randScreenName = getRandom(screenNames);
+  var randScreenName = getRandom(screen_names);
   twit.get('followers/ids', { screen_name: randScreenName })
     .then((resp) => twit.post('friendships/create', { id: getRandom(resp.data.ids) }))
     .then(({ data }) => {
@@ -106,7 +104,7 @@ function unfollow() {
 
 // Say something weird and horse_js-ish
 function tweetHorse() {
-  var randScreenName = getRandom(screenNames);
+  var randScreenName = getRandom(screen_names);
   twit.get('statuses/user_timeline', { screen_name: randScreenName })
     .then(({ data }) => data.map(d => d.text)
       .join(' ')
@@ -129,6 +127,7 @@ function tweetHorse() {
     })
     .catch(console.error);
 }
+
 
 function getRandom(arr) {
   return arr[ Math.floor(arr.length * Math.random()) ];

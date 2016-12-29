@@ -11,3 +11,4 @@ npm-debug.log*
 ehthumbs.db
 Icon?
 Thumbs.db
+.env
