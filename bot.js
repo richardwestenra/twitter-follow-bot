@@ -18,7 +18,7 @@ setInterval(() => {
     getRandom([
       follow,
       tweetHorse,
-      getTweet.bind(this, 'popular', retweet),
+      getTweet.bind(this, 'recent', retweet),
       getTweet.bind(this, 'recent', fav),
     ])();
   } else {
