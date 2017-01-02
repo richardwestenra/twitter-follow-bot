@@ -22,10 +22,13 @@ setInterval(() => {
   switch (getRandom([1,2,3])) {
     case 1:
       findUserByFollowers(randomUser).then( follow(otherList) );
+      break;
     case 2:
       findUserByTopic(randomList).then( follow(randomList) );
+      break;
     case 3:
       unfollow( getRandom([randomList, otherList]) );
+      break;
   }
 }, seconds * 1000);
 
@@ -86,7 +89,11 @@ function unfollow(list) {
       skip_status: 1,
       include_entities: false
     })
-    .then((resp) => resp.data.users.map(user => user.screen_name))
+    .then((resp) => resp.data.users)
+    .then((users) => {
+      if (!users || !users.length) throw `Error: List '${list}' is empty.`;
+      return users.map(user => user.screen_name);
+    })
     .then((users) => twit.get('friendships/lookup', {
       screen_name: users
         .sort(shuffle)
