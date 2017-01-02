@@ -19,7 +19,7 @@ const otherList = 'web-development-datavis';
 setInterval(() => {
   var randomList = getRandom(search_terms);
   var randomUser = getRandom(screen_names);
-  switch (getRandom([1,2,3])) {
+  switch (getRandom([1,2,2,3])) {
     case 1:
       findUserByFollowers(randomUser).then( follow(otherList) );
       break;
