@@ -34,7 +34,10 @@ setInterval(() => {
 function findUserByFollowers(screenName) {
   console.log(`Finding a user who follows @${screenName}...`);
   return twit.get('followers/list', { screen_name: screenName })
-    .then(({ data }) => data.users.map(user => user.screen_name))
+    .then(({ data }) => data.users
+      .filter((user) => !user.following)
+      .map((user) => user.screen_name)
+    )
     .then(getRandom)
     .catch(console.error);
 }
@@ -48,6 +51,7 @@ function findUserByTopic(list) {
       count: 100
     })
     .then((resp) => resp.data.statuses
+      .filter((status) => !status.user.following)
       .map((status) => status.user.screen_name)
       .filter(unique)
     )
