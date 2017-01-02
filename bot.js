@@ -106,6 +106,9 @@ function unfollow(list) {
     )
     .then(getRandom)
     .then((user) => twit.post('friendships/destroy', { screen_name: user }))
+    .then(({ data }) => twit.post('mutes/users/destroy', {
+      screen_name: data.screen_name
+    }))
     .then(({ data }) => {
       console.log(`Unfollowed @${data.screen_name} and removed them from the ${list} list.`);
       return twit.post('lists/members/destroy', {
