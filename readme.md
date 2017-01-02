@@ -12,7 +12,8 @@ module.exports = {
 	access_token: '...',
 	access_token_secret: '...',
     screen_names: 'screen_name1,screen_name2 ...',
-    search_terms: '#term1 OR term2'
+	search_terms: 'term1,term2,term3',
+	username: 'screen_name'
 }
 ```
 or if you're using Heroku/Foreman then use a `.env` procfile instead:
@@ -22,7 +23,8 @@ consumer_secret=...
 access_token=...
 access_token_secret=...
 screen_names=screen_name1,screen_name2...
-search_terms=#term1 OR term2
+search_terms=term1,term2,term3
+username=screen_name
 ```
 
 For more information about how to create your Twitter API keys [read this](https://twittercommunity.com/t/how-to-get-my-api-key/7033 "How to get my API key") - you will need to configure your application with the **read-write-with-direct messages** permission level.

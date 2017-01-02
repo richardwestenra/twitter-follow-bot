@@ -1,133 +1,119 @@
 /**
- * Twitter bot that follows random people who follow certain users
- * and unfollows random followers of yours
+ * Twitter bot that follows+mutes+lists random people 
+ * who follow certain users or who tweet about certain topics
+ * and unfollows random followers from those lists
+ * who don't follow back
  */
 
-const Markov = require('markov');
 const Twit = require('twit');
 const config = process.env || require('./config');
 
-const markov = new Markov(1);
 const twit = new Twit(config);
 const screen_names = config.screen_names.split(',');
-const { search_terms } = config;
-const seconds = 65;
+const search_terms = config.search_terms.split(',');
 
+const seconds = 65;
+const otherList = 'web-development-datavis';
+
+// Do something random on interval:
 setInterval(() => {
-  if (Math.random() > 0.05) {
-    getRandom([
-      follow,
-      tweetHorse,
-      getTweet.bind(this, 'recent', retweet),
-      getTweet.bind(this, 'recent', fav),
-    ])();
-  } else {
-    unfollow();
+  var randomList = getRandom(search_terms);
+  var randomUser = getRandom(screen_names);
+  switch (getRandom([1,2,3])) {
+    case 1:
+      findUserByFollowers(randomUser).then( follow(otherList) );
+    case 2:
+      findUserByTopic(randomList).then( follow(randomList) );
+    case 3:
+      unfollow( getRandom([randomList, otherList]) );
   }
 }, seconds * 1000);
 
 
-function getTweet(type, callback) {
-  twit.get('search/tweets', {
-      q: search_terms,
-      result_type: type,
-      count: 50
+// Choose a random follower of someone on the list:
+function findUserByFollowers(screenName) {
+  console.log(`Finding a user who follows @${screenName}...`);
+  return twit.get('followers/list', { screen_name: screenName })
+    .then(({ data }) => data.users.map(user => user.screen_name))
+    .then(getRandom)
+    .catch(console.error);
+}
+
+
+// Choose a random user tweeting about a topic:
+function findUserByTopic(list) {
+  console.log(`Finding a user tweeting about ${list}...`);
+  return twit.get('search/tweets', {
+      q: `${list} -${config.username}`,
+      count: 100
     })
-    .then((resp) => {
-      if (resp.data.errors) throw resp.data.errors;
-      return resp.data.statuses;
-    })
-    .then((statuses) => 
-      statuses.sort(() =>
-        Math.round(Math.random()) - 0.5
-        // (b.retweet_count + b.favorite_count) - (a.retweet_count + a.favorite_count)
-      )[0]
+    .then((resp) => resp.data.statuses
+      .map((status) => status.user.screen_name)
+      .filter(unique)
     )
-    .then(callback)
+    .then(getRandom)
     .catch(console.error);
 }
 
 
-// Retweet a very good tweet
-function retweet(tweet) {
-  twit.post('statuses/retweet/:id', { id: tweet.id_str })
-    .then((resp) => {
-      if (resp.data.errors) throw resp.data.errors;
-      return resp.data;
-    })
-    .then((tweet) => {
-      console.log(`Retweeted ${tweet.id_str} by @${tweet.retweeted_status.user.screen_name}.`);
-    })
-    .catch(console.error);
-  return tweet;
-}
-
-
-// Favourite a very good tweet
-function fav(tweet) {
-  twit.post('favorites/create', { id: tweet.id_str })
-    .then((resp) => {
-      if (resp.data.errors) throw resp.data.errors;
-      return resp.data;
-    })
-    .then((tweet) => {
-      console.log(`Favourited ${tweet.id_str} by @${tweet.user.screen_name}.`);
-    })
-    .catch(console.error);
-  return tweet;
-}
-
-
-// Choose a random follower of someone on the list, and follow that user:
-function follow() {
-  var randScreenName = getRandom(screen_names);
-  twit.get('followers/ids', { screen_name: randScreenName })
-    .then((resp) => twit.post('friendships/create', { id: getRandom(resp.data.ids) }))
-    .then(({ data }) => {
-      console.log(`Followed @${data.screen_name}, who also follows @${randScreenName}.`);
-    })
-    .catch(console.error);
-}
-
-
-// Unfollow someone randomly
-function unfollow() {
-  twit.get('friends/ids')
-    .then((resp) => resp.data.ids)
-    .then((ids) => twit.post('friendships/destroy', { id: getRandom(ids)}))
-    .then(({ data }) => {
-      console.log(`Unfollowed @${data.screen_name}`);
-    })
-    .catch(console.error);
-}
-
-
-// Say something weird and horse_js-ish
-function tweetHorse() {
-  var randScreenName = getRandom(screen_names);
-  twit.get('statuses/user_timeline', { screen_name: randScreenName })
-    .then(({ data }) => data.map(d => d.text)
-      .join(' ')
-      .split(' ')
-      .filter((word) => !word.match('@') && !word.match('http') && !word.match('RT'))
-      .join(' ')
-    )
-    .then((tweets) => new Promise((resolve) => {
-      markov.seed(tweets, () => {
-        var tweet = markov.respond(tweets).reduce((a, b) => {
-          var tmp = `${a} ${b}`;
-          return (tmp.length > 140) ? a : tmp;
-        }, '').trim();
-        resolve(tweet);
-      });
+// Follow a user, mute them, and add them to a list:
+function follow(list) {
+  return (user) => twit.post('friendships/create', { screen_name: user })
+    .then(({ data }) => twit.post('mutes/users/create', {
+      screen_name: data.screen_name
     }))
-    .then(tweet => {
-      twit.post('statuses/update', { status: tweet });
-      console.log(`Tweeted "${tweet}"`);
+    .then(({ data }) => {
+      console.log(`Followed @${data.screen_name} and added them to list ${list}.`);
+      return twit.post('lists/members/create', {
+        slug: list,
+        owner_screen_name: config.username,
+        screen_name: data.screen_name
+      });
     })
     .catch(console.error);
 }
 
+
+// Unfollow someone randomly, if they don't follow me back:
+function unfollow(list) {
+  twit.get('lists/members', {
+      slug: list,
+      owner_screen_name: config.username,
+      skip_status: 1,
+      include_entities: false
+    })
+    .then((resp) => resp.data.users.map(user => user.screen_name))
+    .then((users) => twit.get('friendships/lookup', {
+      screen_name: users
+        .sort(shuffle)
+        .slice(0,99)
+        .join(',')
+    }))
+    .then((resp) => resp.data
+      .filter((user) => user.connections.indexOf('followed_by') < 0)
+      .map((user) => user.screen_name)
+    )
+    .then(getRandom)
+    .then((user) => twit.post('friendships/destroy', { screen_name: user }))
+    .then(({ data }) => {
+      console.log(`Unfollowed @${data.screen_name} and removed them from the ${list} list.`);
+      return twit.post('lists/members/destroy', {
+        slug: list,
+        owner_screen_name: config.username,
+        screen_name: data.screen_name
+      });
+    })
+    .catch(console.error);
+}
+
+
+function unique(value, index, self) { 
+  return self.indexOf(value) === index;
+}
+
+function shuffle() {
+  return 0.5 - Math.random();
+}
 
 function getRandom(arr) {
   return arr[ Math.floor(arr.length * Math.random()) ];

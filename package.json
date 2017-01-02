@@ -1,6 +1,6 @@
 {
   "name": "twitter-follow-bot",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "bot.js",
   "scripts": {
@@ -15,7 +15,6 @@
   "author": "Richard Westenra",
   "license": "MIT",
   "dependencies": {
-    "markov": "0.0.7",
     "twit": "^2.2.5"
   },
   "engines": {
