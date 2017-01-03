@@ -1,8 +1,6 @@
 /**
- * Twitter bot that follows+mutes+lists random people 
- * who follow certain users or who tweet about certain topics
- * and unfollows random followers from those lists
- * who don't follow back
+ * Twitter bot that finds people who follow certain users or who tweet about certain topics
+ * and adds them to lists, and removes users who don't follow me from those lists
  */
 
 const Twit = require('twit');
@@ -12,7 +10,7 @@ const twit = new Twit(config);
 const screen_names = config.screen_names.split(',');
 const search_terms = config.search_terms.split(',');
 
-const intervals = [300, 900]; // min, max (in seconds)
+const intervals = [60, 600]; // min, max (in seconds)
 const otherList = 'web-development-datavis';
 
 
@@ -31,15 +29,15 @@ function loop() {
 function execute() {
   var randomList = getRandom(search_terms);
   var randomUser = getRandom(screen_names);
-  switch (getRandom([1,2,2,3,3])) {
+  switch (getRandom([1,2,2,3])) {
     case 1:
-      findUserByFollowers(randomUser).then( follow(otherList) );
+      findUserByFollowers(randomUser).then( addToList(otherList) );
       break;
     case 2:
-      findUserByTopic(randomList).then( follow(randomList) );
+      findUserByTopic(randomList).then( addToList(randomList) );
       break;
     case 3:
-      unfollow( getRandom([randomList, otherList]) );
+      removeFromList( getRandom([randomList, otherList]) );
       break;
   }
 }
@@ -79,26 +77,25 @@ function findUserByTopic(list) {
 
 
 // Follow a user, mute them, and add them to a list:
-function follow(list) {
-  return (user) => twit.post('friendships/create', { screen_name: user })
-    .then(({ data }) => {
-      if (!data.screen_name) throw data.errors;
-      return twit.post('mutes/users/create', { screen_name: data.screen_name });
+function addToList(list) {
+  return (user) => twit.post('lists/members/create', {
+      slug: list,
+      owner_screen_name: config.username,
+      screen_name: user
     })
     .then(({ data }) => {
-      console.log(`Followed @${data.screen_name} and added them to list ${list}.`);
-      return twit.post('lists/members/create', {
-        slug: list,
-        owner_screen_name: config.username,
-        screen_name: data.screen_name
-      });
+      if (!data.id) {
+        throw data.errors;
+      } else {
+        console.log(`Added @${user} to the ${list} list.`);
+      }
     })
     .catch(console.error);
 }
 
 
-// Unfollow someone randomly, if they don't follow me back:
-function unfollow(list) {
+// Remove a random user from a list, if they don't follow me back:
+function removeFromList(list) {
   twit.get('lists/members', {
       slug: list,
       owner_screen_name: config.username,
@@ -121,17 +118,15 @@ function unfollow(list) {
       .map((user) => user.screen_name)
     )
     .then(getRandom)
-    .then((user) => twit.post('friendships/destroy', { screen_name: user }))
-    .then(({ data }) => twit.post('mutes/users/destroy', {
-      screen_name: data.screen_name
-    }))
-    .then(({ data }) => {
-      console.log(`Unfollowed @${data.screen_name} and removed them from the ${list} list.`);
-      return twit.post('lists/members/destroy', {
+    .then((user) => twit.post('lists/members/destroy', {
         slug: list,
         owner_screen_name: config.username,
-        screen_name: data.screen_name
-      });
+        screen_name: user
+      })
+      .then(() => user)
+    )
+    .then((user) => {
+      console.log(`Removed @${user} from the ${list} list.`);
     })
     .catch(console.error);
 }

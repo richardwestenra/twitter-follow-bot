@@ -1,6 +1,6 @@
 # twitter-follow-bot
 
-A Node.js twitter bot that randomly follows and unfollows people. It uses the [`Twit`](https://github.com/ttezel/twit "Twit's Github repo") Twitter API Client for Node.
+A Node.js twitter bot that adds and removes people from lists. It uses the [`Twit`](https://github.com/ttezel/twit "Twit's Github repo") Twitter API Client for Node.
 
 ## Setting things up
 
