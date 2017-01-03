@@ -12,7 +12,7 @@ const twit = new Twit(config);
 const screen_names = config.screen_names.split(',');
 const search_terms = config.search_terms.split(',');
 
-const intervals = [65, 300]; // min, max (in seconds)
+const intervals = [300, 900]; // min, max (in seconds)
 const otherList = 'web-development-datavis';
 
 
