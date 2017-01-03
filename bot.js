@@ -30,17 +30,18 @@ setInterval(() => {
       unfollow( getRandom([randomList, otherList]) );
       break;
   }
-}, seconds * 1000);
+}
 
 
 // Choose a random follower of someone on the list:
 function findUserByFollowers(screenName) {
   console.log(`Finding a user who follows @${screenName}...`);
   return twit.get('followers/list', { screen_name: screenName })
-    .then(({ data }) => data.users
-      .filter((user) => !user.following)
-      .map((user) => user.screen_name)
-    )
+    .then(({ data }) => {
+      if (!data.users) throw data.errors;
+      return data.users.filter((user) => !user.following)
+        .map((user) => user.screen_name);
+    })
     .then(getRandom)
     .catch(console.error);
 }
@@ -53,11 +54,13 @@ function findUserByTopic(list) {
       q: `${list} -${config.username}`,
       count: 100
     })
-    .then((resp) => resp.data.statuses
-      .filter((status) => !status.user.following)
-      .map((status) => status.user.screen_name)
-      .filter(unique)
-    )
+    .then(({ data }) => {
+      if (!data.statuses) throw data.errors;
+      return data.statuses
+        .filter((status) => !status.user.following)
+        .map((status) => status.user.screen_name)
+        .filter(unique);
+    })
     .then(getRandom)
     .catch(console.error);
 }
@@ -66,9 +69,10 @@ function findUserByTopic(list) {
 // Follow a user, mute them, and add them to a list:
 function follow(list) {
   return (user) => twit.post('friendships/create', { screen_name: user })
-    .then(({ data }) => twit.post('mutes/users/create', {
-      screen_name: data.screen_name
-    }))
+    .then(({ data }) => {
+      if (!data.screen_name) throw data.errors;
+      return twit.post('mutes/users/create', { screen_name: data.screen_name });
+    })
     .then(({ data }) => {
       console.log(`Followed @${data.screen_name} and added them to list ${list}.`);
       return twit.post('lists/members/create', {
