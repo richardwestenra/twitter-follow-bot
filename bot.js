@@ -12,14 +12,26 @@ const twit = new Twit(config);
 const screen_names = config.screen_names.split(',');
 const search_terms = config.search_terms.split(',');
 
-const seconds = 65;
+const intervals = [65, 300]; // min, max (in seconds)
 const otherList = 'web-development-datavis';
 
-// Do something random on interval:
-setInterval(() => {
+
+// Initialise:
+loop();
+
+
+// Execute on irregular intervals:
+function loop() {
+  execute();
+  setTimeout(loop, randomTime(...intervals));
+}
+
+
+// Do something random:
+function execute() {
   var randomList = getRandom(search_terms);
   var randomUser = getRandom(screen_names);
-  switch (getRandom([1,2,2,3])) {
+  switch (getRandom([1,2,2,3,3])) {
     case 1:
       findUserByFollowers(randomUser).then( follow(otherList) );
       break;
@@ -135,4 +147,8 @@ function shuffle() {
 
 function getRandom(arr) {
   return arr[ Math.floor(arr.length * Math.random()) ];
+}
+
+function randomTime(min, max) {
+  return Math.round((Math.random() * (max - min)) + min) * 1000;
 }
